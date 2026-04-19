@@ -82,7 +82,18 @@ def contact_list(request):
             qr_code=qr_code,
         )
 
-        return JsonResponse({"message": "Saved", "id": contact.id})
+        return JsonResponse({
+            "message": "Saved",
+            "id": contact.id,
+            "name": contact.name,
+            "company_name": contact.company_name,
+            "address": contact.address,
+            "phones": contact.phones,
+            "emails": contact.emails,
+            "front_card": contact.front_card.url if contact.front_card else None,
+            "back_card": contact.back_card.url if contact.back_card else None,
+            "qr_code": contact.qr_code.url if contact.qr_code else None,
+})
 
 
 # ===================== CONTACT DETAIL =====================

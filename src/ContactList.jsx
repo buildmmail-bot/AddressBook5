@@ -87,7 +87,8 @@ const Index = () => {
     if (newForm.qr_code) formData.append("qr_code", newForm.qr_code);
     const res = await fetch("http://127.0.0.1:8000/api/contacts/", { method: "POST", body: formData });
     const saved = await res.json();
-    const newContact = { ...newForm, emails: validEmails, phones: validPhones, id: saved.id, online: false };
+    console.log("Saved from Django:", saved);
+const newContact = { ...newForm, emails: validEmails, phones: validPhones, id: saved.id, qr_code: saved.qr_code, front_card: saved.front_card, back_card: saved.back_card, online: false };
     setContacts((prev) => [...prev, newContact]);
     setNewForm({ name: "", company_name: "", phones: [""], emails: [""], address: "", front_card: null, back_card: null, front_preview: "", back_preview: "", qr_code: null, qr_preview: null });
     setIsAdding(false);
@@ -96,6 +97,7 @@ const Index = () => {
   };
 
   const handleSelect = (contact) => {
+    console.log("QR Code value:", contact.qr_code);
     setSelected(contact);
     setForm({
       ...contact,
@@ -443,7 +445,7 @@ const Index = () => {
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     <label style={{ fontSize: 16, color: "#228032" }}>QR Code</label>
                     <div style={{ padding: 10, border: "2px solid #a9ecb2", borderRadius: 6, background: "#f9fafb", display: "flex", justifyContent: "center" }}>
-                      <img src={`http://127.0.0.1:8000${selected.qr_code}`} alt="QR Code" style={{ width: 160, height: 160, objectFit: "contain", borderRadius: 6 }} />
+                   <img src={selected.qr_code.startsWith("http") ? selected.qr_code : `http://127.0.0.1:8000${selected.qr_code}`} alt="QR Code" style={{ width: "100%", height:"100%", objectFit: "cover", borderRadius: 6,display: "block" }} />
                     </div>
                   </div>
                 )}

@@ -96,10 +96,9 @@ export default function Cards() {
       .then((data) => setItems(data));
   }, []);
 
-  const handleDeleteCard = (id, field) => {
-    setDeleteModal({ id, field });
-  };
-
+ const handleDeleteCard = (id, field) => {
+  setDeleteModal({ id, field });
+};
   const confirmDeleteCard = async () => {
     const { id, field } = deleteModal;
 
@@ -110,12 +109,18 @@ export default function Cards() {
         body: JSON.stringify({ field }),
       });
 
+      console.log("Status:", response.status);  
+      const data = await response.json();
+      console.log("Response:", data);           
+
       if (response.ok) {
         setItems((prev) =>
           prev.map((item) =>
             item.id === id ? { ...item, [field]: null } : item
           )
         );
+      } else {
+        console.error("Delete failed:", data);  
       }
     } catch (error) {
       console.error("Error deleting card:", error);
@@ -123,7 +128,6 @@ export default function Cards() {
 
     setDeleteModal(null);
   };
-
   return (
     <>
       <div style={{ padding: "40px 20px", display: "flex", flexWrap: "wrap", gap: 24,
