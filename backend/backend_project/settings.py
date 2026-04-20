@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'contacts',
-       'corsheaders',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -130,11 +130,11 @@ USE_TZ = True
 STATIC_URL = 'static/'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174", 
-      "http://127.0.0.1:5174", 
-     "http://127.0.0.1:5173",
-       "http://localhost:5173",
-       "http://localhost:5175",
-         "http://127.0.0.1:5175"
+    "http://127.0.0.1:5174", 
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175"
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True

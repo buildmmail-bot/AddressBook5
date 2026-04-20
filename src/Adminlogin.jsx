@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 
-
 const FONT_HREF =
   "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400;500&display=swap";
 
@@ -157,7 +156,10 @@ const S = {
     boxSizing: "border-box",
     padding: "13px 16px",
     background: "#f9f7f4",
-    border: "1px solid rgba(160,120,60,0.2)",
+    // FIXED: Using longhand border properties
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "rgba(160,120,60,0.2)",
     borderRadius: 4,
     color: "#1c1610",
     fontSize: 13,
@@ -216,6 +218,7 @@ const S = {
     padding: "13px 0",
     background: "linear-gradient(135deg, rgba(205, 239, 171, 0.93) 0%, #c4f3db 50%, #a07828 100%)",
     backgroundSize: "200% 100%",
+    backgroundPosition: "0% 0%", // FIXED: Base position for smooth transition
     border: "none",
     borderRadius: 4,
     color: "#064e0d",
@@ -229,7 +232,7 @@ const S = {
     boxShadow: "0 4px 18px rgba(140,100,40,0.28)",
   },
   btnHover: {
-    backgroundPosition: "100% 0",
+    backgroundPosition: "100% 0%", 
     boxShadow: "0 6px 26px rgba(140,100,40,0.38)",
     transform: "translateY(-1px)",
   },
@@ -354,12 +357,11 @@ export default function AdminLogin({ onLogin }) {
           <span style={S.footerText}>© {new Date().getFullYear()} Admin Console</span>
         </div>
       </div>
-      
     </div>
   );
 }
 
-function LoginView({ onForgot, onLogin}) {
+function LoginView({ onForgot, onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -369,7 +371,7 @@ function LoginView({ onForgot, onLogin}) {
   const [btnHover, setBtnHover] = useState(false);
   const [focused, setFocused] = useState(null);
   const [loginError, setLoginError] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false); 
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const errs = {};
@@ -378,8 +380,8 @@ function LoginView({ onForgot, onLogin}) {
     setErrors(errs);
   }, [email, password, touched]);
 
-  // ✅ FIXED: Now actually calls your Django backend
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault(); // FIXED: Handle form event
     setTouched({ email: true, password: true });
     if (validateEmail(email) || validatePassword(password)) return;
 
@@ -387,28 +389,22 @@ function LoginView({ onForgot, onLogin}) {
     setLoginError("");
 
     try {
-   
-const res = await fetch("http://127.0.0.1:8000/api/login/", {
+      const res = await fetch("http://127.0.0.1:8000/api/login/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-         credentials: "include",
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
-   if (res.ok) {
-  localStorage.setItem("isAdmin", "true");
-  localStorage.setItem("adminData", JSON.stringify(data));
-  setShowSuccess(true);   // 👈 SHOW POPUP
-
-  setTimeout(() => {
-    onLogin(email);            // redirect after 1.5 sec
-  }, 1500);
-
-
-
-
+      if (res.ok) {
+        localStorage.setItem("isAdmin", "true");
+        localStorage.setItem("adminData", JSON.stringify(data));
+        setShowSuccess(true);
+        setTimeout(() => {
+          onLogin(email);
+        }, 1500);
       } else {
         setLoginError(data.error || "Invalid credentials. Please try again.");
       }
@@ -419,12 +415,14 @@ const res = await fetch("http://127.0.0.1:8000/api/login/", {
     }
   };
 
-  const inputStyle = (field) => ({
-    ...S.input,
-    ...(focused === field ? S.inputFocus : {}),
-    ...(errors[field] && touched[field] ? S.inputError : {}),
-    paddingRight: field === "password" ? 44 : 16,
-  });
+  // FIXED: Logic to merge styles without conflicts
+  const inputStyle = (field) => {
+    let combined = { ...S.input };
+    if (focused === field) combined = { ...combined, ...S.inputFocus };
+    if (errors[field] && touched[field]) combined = { ...combined, ...S.inputError };
+    if (field === "password") combined.paddingRight = 44;
+    return combined;
+  };
 
   return (
     <div className="view-enter">
@@ -437,123 +435,120 @@ const res = await fetch("http://127.0.0.1:8000/api/login/", {
 
       {loginError && <div style={S.globalError}>⚠ {loginError}</div>}
 
-      <div style={S.fieldGroup}>
-        <label style={S.label}>Email address</label>
-        <div style={S.inputWrap}>
-          <input
-            type="email"
-            value={email}
-            placeholder="admin@example.com"
-            style={inputStyle("email")}
-            onChange={(e) => setEmail(e.target.value)}
-            onFocus={() => setFocused("email")}
-            onBlur={() => {
-              setFocused(null);
-              setTouched((p) => ({ ...p, email: true }));
-            }}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            autoComplete="email"
-          />
+      {/* FIXED: Form wraps ALL credentials for better accessibility and autofill */}
+      <form onSubmit={handleSubmit}>
+        <div style={S.fieldGroup}>
+          <label style={S.label} htmlFor="email">Email address</label>
+          <div style={S.inputWrap}>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              placeholder="admin@example.com"
+              style={inputStyle("email")}
+              onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setFocused("email")}
+              onBlur={() => {
+                setFocused(null);
+                setTouched((p) => ({ ...p, email: true }));
+              }}
+              autoComplete="username"
+            />
+          </div>
+          {errors.email && touched.email && (
+            <p style={S.errorMsg}>{errors.email}</p>
+          )}
         </div>
-        {errors.email && touched.email && (
-          <p style={S.errorMsg}>{errors.email}</p>
-        )}
-      </div>
 
-      <div style={S.fieldGroup}>
-        <label style={S.label}>Password</label>
-        <div style={S.inputWrap}>
-          <input
-            type={showPw ? "text" : "password"}
-            value={password}
-            placeholder="••••••••••"
-            style={inputStyle("password")}
-            onChange={(e) => setPassword(e.target.value)}
-            onFocus={() => setFocused("password")}
-            onBlur={() => {
-              setFocused(null);
-              setTouched((p) => ({ ...p, password: true }));
-            }}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            autoComplete="current-password"
-          />
-          <button
-            style={{
-              ...S.eyeBtn,
-              color: showPw ? "rgba(140,100,40,0.75)" : "rgba(140,100,40,0.35)",
-            }}
-            onClick={() => setShowPw((v) => !v)}
-            type="button"
-            aria-label="Toggle password visibility"
-          >
-            {showPw ? "●" : "○"}
-          </button>
+        <div style={S.fieldGroup}>
+          <label style={S.label} htmlFor="password">Password</label>
+          <div style={S.inputWrap}>
+            <input
+              id="password"
+              type={showPw ? "text" : "password"}
+              value={password}
+              placeholder="••••••••••"
+              style={inputStyle("password")}
+              onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setFocused("password")}
+              onBlur={() => {
+                setFocused(null);
+                setTouched((p) => ({ ...p, password: true }));
+              }}
+              autoComplete="current-password"
+            />
+            <button
+              style={{
+                ...S.eyeBtn,
+                color: showPw ? "rgba(140,100,40,0.75)" : "rgba(140,100,40,0.35)",
+              }}
+              onClick={() => setShowPw((v) => !v)}
+              type="button"
+              aria-label="Toggle password visibility"
+            >
+              {showPw ? "●" : "○"}
+            </button>
+          </div>
+          {errors.password && touched.password && (
+            <p style={S.errorMsg}>{errors.password}</p>
+          )}
         </div>
-        {errors.password && touched.password && (
-          <p style={S.errorMsg}>{errors.password}</p>
-        )}
-      </div>
 
-      <div style={S.forgotRow}>
-        <button style={S.forgotLink} onClick={onForgot} type="button">
-          Forgot password?
+       
+
+        <button
+          style={{
+            ...S.btn,
+            ...(btnHover && !loading ? S.btnHover : {}),
+            ...(loading ? S.btnDisabled : {}),
+          }}
+          onMouseEnter={() => setBtnHover(true)}
+          onMouseLeave={() => setBtnHover(false)}
+          type="submit" // Use type submit for native form submission
+          disabled={loading}
+        >
+          {loading ? "Authenticating…" : "Sign In →"}
         </button>
-      </div>
+      </form>
 
-      <button
-        style={{
-          ...S.btn,
-          ...(btnHover && !loading ? S.btnHover : {}),
-          ...(loading ? S.btnDisabled : {}),
-        }}
-        onMouseEnter={() => setBtnHover(true)}
-        onMouseLeave={() => setBtnHover(false)}
-        onClick={handleSubmit}
-        disabled={loading}
-        type="button"
-      >
-        {loading ? "Authenticating…" : "Sign In →"}
-      </button>
-   
-
-{/* ✅ SUCCESS POPUP */}
-{showSuccess && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      background: "rgba(0,0,0,0.4)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 9999
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        padding: "30px 40px",
-        borderRadius: 12,
-        textAlign: "center",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.2)"
-      }}
-    >
-      <h2 style={{ color: "#16a34a", marginBottom: 10 }}>
-        ✅ Login Successful
-      </h2>
-      <p style={{ color: "#6b7280" }}>
-        Redirecting...
-      </p>
+      {/* ✅ SUCCESS POPUP */}
+      {showSuccess && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              padding: "30px 40px",
+              borderRadius: 12,
+              textAlign: "center",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.2)"
+            }}
+          >
+            <h2 style={{ color: "#16a34a", marginBottom: 10 }}>
+              ✅ Login Successful
+            </h2>
+            <p style={{ color: "#6b7280" }}>
+              Redirecting...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-)}
-
-</div>  
   );
 }
+
 
 function ForgotView({ onBack, onSuccess }) {
   const [email, setEmail] = useState("");
@@ -567,20 +562,21 @@ function ForgotView({ onBack, onSuccess }) {
     if (touched) setError(validateEmail(email));
   }, [email, touched]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
     setTouched(true);
     if (validateEmail(email)) return;
     setLoading(true);
     setError("");
     try {
-    const res = await fetch("http://127.0.0.1:8000/api/password-reset/", {
+      const res = await fetch("http://127.0.0.1:8000/api/password-reset/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
 
       if (res.ok) {
-        onSuccess(); // Shows the "Check your inbox" screen
+        onSuccess();
       } else {
         const data = await res.json();
         setError(data.error || "User with this email does not exist.");
@@ -601,45 +597,46 @@ function ForgotView({ onBack, onSuccess }) {
       <h1 style={S.heading}>Reset password.</h1>
       <div style={S.divider} />
 
-      <div style={S.fieldGroup}>
-        <label style={S.label}>Email address</label>
-        <input
-          type="email"
-          value={email}
-          placeholder="admin@example.com"
-          style={{
-            ...S.input,
-            ...(focused ? S.inputFocus : {}),
-            ...(error && touched ? S.inputError : {}),
-          }}
-          onChange={(e) => setEmail(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => {
-            setFocused(false);
-            setTouched(true);
-          }}
-          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-          autoComplete="email"
-        />
-        {error && touched && <p style={S.errorMsg}>{error}</p>}
-      </div>
+      <form onSubmit={handleSubmit}>
+        <div style={S.fieldGroup}>
+          <label style={S.label} htmlFor="forgot-email">Email address</label>
+          <input
+            id="forgot-email"
+            type="email"
+            value={email}
+            placeholder="admin@example.com"
+            style={{
+              ...S.input,
+              ...(focused ? S.inputFocus : {}),
+              ...(error && touched ? S.inputError : {}),
+            }}
+            onChange={(e) => setEmail(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => {
+              setFocused(false);
+              setTouched(true);
+            }}
+            autoComplete="email"
+          />
+          {error && touched && <p style={S.errorMsg}>{error}</p>}
+        </div>
 
-      <div style={{ marginTop: 28 }}>
-        <button
-          style={{
-            ...S.btn,
-            ...(btnHover && !loading ? S.btnHover : {}),
-            ...(loading ? S.btnDisabled : {}),
-          }}
-          onMouseEnter={() => setBtnHover(true)}
-          onMouseLeave={() => setBtnHover(false)}
-          onClick={handleSubmit}
-          disabled={loading}
-          type="button"
-        >
-          {loading ? "Sending…" : "Send Reset Link →"}
-        </button>
-      </div>
+        <div style={{ marginTop: 28 }}>
+          <button
+            style={{
+              ...S.btn,
+              ...(btnHover && !loading ? S.btnHover : {}),
+              ...(loading ? S.btnDisabled : {}),
+            }}
+            onMouseEnter={() => setBtnHover(true)}
+            onMouseLeave={() => setBtnHover(false)}
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? "Sending…" : "Send Reset Link →"}
+          </button>
+        </div>
+      </form>
 
       <button style={S.backBtn} onClick={onBack} type="button">
         ← Back to sign in
@@ -674,4 +671,4 @@ function ForgotSuccessView({ onBack }) {
       </div>
     </div>
   );
-}               
+}

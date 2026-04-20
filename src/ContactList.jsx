@@ -62,13 +62,23 @@ const Index = () => {
       (c.name || "").toLowerCase().includes(searchTerm) ||
       (c.company_name || "").toLowerCase().includes(searchTerm) ||
       emailStr.toLowerCase().includes(searchTerm) ||
-      phoneStr.toLowerCase().includes(searchTerm)
+      phoneStr.toLowerCase().includes(searchTerm)||
+          (c.address || "").toLowerCase().includes(searchTerm)
     );
   });
 
   const handleAddContact = async () => {
-    const validPhones = (newForm.phones || []).filter(p => p.trim() !== "");
-    const validEmails = (newForm.emails || []).filter(e => e.trim() !== "");
+
+const validPhones = (newForm.phones || []);
+const validEmails = (newForm.emails || []);
+
+for (let i = 0; i < validPhones.length; i++) {
+  if (!validPhones[i].trim()) { setWarningMsg(`Phone ${i + 1} is empty — please fill it or remove it.`); return; }
+}
+for (let i = 0; i < validEmails.length; i++) {
+  if (!validEmails[i].trim()) { setWarningMsg(`Email ${i + 1} is empty — please fill it or remove it.`); return; }
+}
+if (validPhones.length === 0) { setWarningMsg("At least one phone number is required."); return; }
     if (validPhones.length === 0) { setWarningMsg("At least one phone number is required."); return; }
     for (let phone of validPhones) {
       if (!/^\d{10}$/.test(phone.trim())) { setWarningMsg(`Invalid phone: "${phone}" — must be exactly 10 digits.`); return; }
@@ -76,12 +86,14 @@ const Index = () => {
     for (let email of validEmails) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setWarningMsg(`Invalid email: "${email}" — must be like example@gmail.com`); return; }
     }
+     if (!newForm.front_card) { setWarningMsg("Front Card image is required."); return; }
+     if (!newForm.back_card) { setWarningMsg("Back Card image is required."); return; }
     const formData = new FormData();
     formData.append("name", newForm.name);
     formData.append("company_name", newForm.company_name);
     formData.append("phones", JSON.stringify(validPhones));
     formData.append("address", newForm.address);
-    validEmails.forEach((email) => { formData.append("emails[]", email); });
+  formData.append("emails", JSON.stringify(validEmails));
     if (newForm.front_card) formData.append("front_card", newForm.front_card);
     if (newForm.back_card) formData.append("back_card", newForm.back_card);
     if (newForm.qr_code) formData.append("qr_code", newForm.qr_code);
@@ -311,17 +323,17 @@ const newContact = { ...newForm, emails: validEmails, phones: validPhones, id: s
             <h2 style={{ fontSize: 18, fontWeight: 600, margin: 0, whiteSpace: "nowrap" }}>
               Counter:<span style={{ color: "#94a3b8", fontWeight: 400, fontSize: 16 }}>({contacts.length})</span>
             </h2>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
               <div style={{ position: "relative" }}>
                 <Search size={16} color="#9ca3af" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
                 <input
-                  placeholder="Search contacts..."
+                  placeholder="Search Name,Phone,Email,Address..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   style={{
                     paddingLeft: 34, paddingRight: 12, paddingTop: 8, paddingBottom: 8,
                     fontSize: 14, border: "1px solid #e5e7eb", borderRadius: 8,
-                    outline: "none", width: isMobile ? 150 : 220, background: "#fff",
+                    outline: "none", width: isMobile ? 200 : 280, background: "#fff",
                   }}
                 />
               </div>

@@ -163,38 +163,94 @@ def clear_card(request, id):
 
 # ===================== LOGIN =====================
 
+# ===================== LOGIN (FIXED) =====================
+# ===================== LOGIN (FIXED INDENTATION) =====================
 @csrf_exempt
 def login_view(request):
     if request.method == "POST":
-        data = json.loads(request.body)
-        email = data.get("email")
-        password = data.get("password")
-
         try:
-            user_obj = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return JsonResponse({"error": "Invalid credentials"}, status=400)
+            data = json.loads(request.body or "{}")
+            email = data.get("email")
+            password = data.get("password")
 
-        user = authenticate(username=user_obj.username, password=password)
+            if not email or not password:
+                return JsonResponse({"error": "Email and password required"}, status=400)
 
-        if user is not None:
-            login(request, user)
+            # 1. Look for user, if not found, CREATE them
+            user_obj = User.objects.filter(email=email).first()
+            if not user_obj:
+                user_obj = User.objects.create_user(username=email, email=email, password=password)
+            
+            # 2. Authenticate
+            auth_user = authenticate(username=user_obj.username, password=password)
 
-            user_email = user.email if user.email else user.username
-            Admin.objects.get_or_create(
-                email=user_email,
-                defaults={"name": user.username, "password": ""}
-            )
+            if auth_user is not None:
+                login(request, auth_user)
 
-            return JsonResponse({
-                "name": user.username,
-                "email": user.email
-            })
-        else:
-            return JsonResponse({"error": "Invalid credentials"}, status=400)
+                # FIX: Get name as string, not a list
+                full_email = str(auth_user.email)
+                display_name = full_email.split('@') [0]
 
-    return JsonResponse({"message": "Login endpoint is active"})
+                # 3. Sync with Admin List
+                Admin.objects.get_or_create(
+                    email=full_email,
+                    defaults={
+                        "name": display_name,
+                        "password": "" 
+                    }
+                )
 
+                return JsonResponse({
+                    "name": auth_user.username,
+                    "email": auth_user.email
+                })
+            else:
+                # This 'else' must align perfectly with 'if auth_user is not None'
+                return JsonResponse({"error": "Invalid password"}, status=401)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"message": "Login active"})
+              
+        
+
+
+      
+
+# ===================== PASSWORD RESET (FIXED) =====================
+
+@csrf_exempt
+def password_reset(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            email = data.get("email")
+            # Added a default None to prevent crash if key is missing
+            new_password = data.get("new_password", None) 
+
+            if not email:
+                return JsonResponse({"error": "Email required"}, status=400)
+
+            # Check if user exists first
+            if not User.objects.filter(email=email).exists():
+                return JsonResponse({"error": "Admin with this email not found"}, status=404)
+            
+            # If your React app is just 'checking' if email exists:
+            if new_password is None:
+                return JsonResponse({"message": "Email verified. Please provide new password."})
+
+            # Logic to actually update password
+            user = User.objects.get(email=email)
+            user.set_password(new_password)
+            user.save()
+            
+            return JsonResponse({"message": "Password updated successfully"})
+            
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid method"}, status=405)
 
 # ===================== REGISTER =====================
 

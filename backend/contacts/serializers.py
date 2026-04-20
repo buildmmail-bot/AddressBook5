@@ -38,4 +38,18 @@ class AdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = Admin
         fields = ['id', 'name', 'email', 'password']
-        extra_kwargs = {'password': {'write_only': False}}
+        extra_kwargs = {'password': {'write_only': True}} # Changed to True for security
+
+    def to_representation(self, instance):
+        """ This method cleans the data before sending it to React """
+        ret = super().to_representation(instance)
+        
+        # FIX: If email is a list like ['admin1234', 'gmail.com'], join it back with '@'
+        if isinstance(ret.get('email'), list):
+            ret['email'] = "@".join(ret['email'])
+            
+        # FIX: If name is a list, join it with a space or take the first element
+        if isinstance(ret.get('name'), list):
+            ret['name'] = " ".join(ret['name'])
+            
+        return ret

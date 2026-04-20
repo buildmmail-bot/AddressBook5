@@ -21,6 +21,10 @@ function AddAdminModal({ onClose }) {
       setError("Name, Email and password are required.");
       return;
     }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+}
     setLoading(true);
     setError("");
     setMessage("");
@@ -33,6 +37,7 @@ function AddAdminModal({ onClose }) {
       const data = await res.json();
       if (res.ok) {
         setMessage("Admin added successfully!");
+        window.dispatchEvent(new Event("adminAdded"));
         setTimeout(() => onClose(), 2000);
       } else {
         setError(data.error || "Something went wrong");
@@ -59,7 +64,28 @@ function AddAdminModal({ onClose }) {
           <X size={20} />
         </button>
         <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111", marginBottom: 20 }}>Add New Admin</h2>
-        {message && <p style={{ color: "#16a34a", background: "#dcfce7", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 14 }}>{message}</p>}
+        {message && (
+  <div style={{
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    zIndex: 99999,
+  }}>
+    <div style={{
+      background: "#fff", borderRadius: 16, padding: "32px 40px",
+      textAlign: "center", boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+    }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: "50%", background: "#dcfce7",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        margin: "0 auto 16px", fontSize: 28,
+      }}>✅</div>
+      <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "#111" }}>
+        Success!
+      </h3>
+      <p style={{ margin: 0, fontSize: 14, color: "#6b7280" }}>{message}</p>
+    </div>
+  </div>
+)}
         {error && <p style={{ color: "#dc2626", background: "#fee2e2", padding: "10px 14px", borderRadius: 8, fontSize: 13, marginBottom: 14 }}>{error}</p>}
         <label style={{ fontSize: 13, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>Name</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name"
@@ -268,20 +294,27 @@ function Dashboard({ onLogout }) {
 }
 
 /* ── APP ── */
+/* ── APP ── */
 export default function App() {
+  // This checks your browser storage immediately when the app starts
   const [loggedIn, setLoggedIn] = useState(
-    () => localStorage.getItem("isAdmin") === "true"
+    () => sessionStorage.getItem("isAdmin") === "true"
   );
 
   const handleLogin = (email) => {
-    localStorage.setItem("isAdmin", "true");
-    localStorage.setItem("adminEmail", email);
+    // 1. Save the session so it stays logged in on refresh
+    sessionStorage.setItem("isAdmin", "true");
+    sessionStorage.setItem("adminEmail", email);
+    
+    // 2. Update the state to switch from Login to Dashboard
     setLoggedIn(true);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("adminEmail");
+    // 1. Clear the session
+  sessionStorage.removeItem("isAdmin");
+  sessionStorage.removeItem("adminEmail");
+    // 2. Update state to kick user back to Login page
     setLoggedIn(false);
   };
 
@@ -289,8 +322,19 @@ export default function App() {
     <ContactsProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/admin" element={loggedIn ? <Navigate to="/" replace /> : <AdminLogin onLogin={handleLogin} />} />
-          <Route path="/" element={loggedIn ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/admin" replace />} />
+          {/* If NOT logged in, any attempt to hit "/" redirects to "/admin" */}
+          <Route 
+            path="/" 
+            element={loggedIn ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/admin" replace />} 
+          />
+
+          {/* If ALREADY logged in, any attempt to hit "/admin" redirects back to the dashboard */}
+          <Route 
+            path="/admin" 
+            element={loggedIn ? <Navigate to="/" replace /> : <AdminLogin onLogin={handleLogin} />} 
+          />
+
+          {/* Catch-all: Redirect any random URL (like /settings) back to the root logic */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

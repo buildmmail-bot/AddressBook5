@@ -115,11 +115,7 @@ const AdminCard = ({
         </span>
         <button
           onClick={() => {
-            const loggedInEmail = localStorage.getItem("adminEmail");
-            if (admin.email !== loggedInEmail) {
-              setWarningMsg("You cannot view another admin's password.");
-              return;
-            }
+           
             togglePassword(admin.id);
           }}
           style={{ background: "none", border: "none", cursor: "pointer",
@@ -140,11 +136,7 @@ const AdminCard = ({
           <Users size={11} /> View
         </button>
         <button onClick={() => {
-          const loggedInEmail = localStorage.getItem("adminEmail");
-          if (admin.email !== loggedInEmail) {
-            setWarningMsg("You cannot edit another admin's details.");
-            return;
-          }
+         
           openEdit(admin);
         }}
           style={{
@@ -192,6 +184,7 @@ export default function AdminPage() {
 
   const [visiblePasswords, setVisiblePasswords] = useState({});
   const [warningMsg, setWarningMsg] = useState(null);
+  const [successMsg, setSuccessMsg] = useState("");
 
   /* responsive: track viewport width */
   const [isMobile, setIsMobile] = useState(
@@ -220,13 +213,17 @@ export default function AdminPage() {
     const t = setTimeout(() => fetchAdmins(search), 300);
     return () => clearTimeout(t);
   }, [search]);
+   
 
-  const openAdd = () => {
-    setEditAdmin(null);
-    setForm({ name: "", email: "", password: "" });
-    setErrors({});
-    setShowModal(true);
+ useEffect(() => {
+  const handler = () => {
+    fetchAdmins(search);
+    setSuccessMsg("Admin added successfully!");
+    setTimeout(() => setSuccessMsg(""), 3000);
   };
+  window.addEventListener("adminAdded", handler);
+  return () => window.removeEventListener("adminAdded", handler);
+}, [search]);
 
   const openEdit = (admin) => {
     setEditAdmin(admin);
@@ -234,6 +231,12 @@ export default function AdminPage() {
     setErrors({});
     setShowModal(true);
   };
+  const openAdd = () => {
+  setEditAdmin(null);
+  setForm({ name: "", email: "", password: "" });
+  setErrors({});
+  setShowModal(true);
+};
 
   const openReset = (admin) => {
     setResetAdmin(admin);
@@ -296,6 +299,7 @@ export default function AdminPage() {
         await fetchAdmins(search);
       } else {
         const err = await res.json();
+        console.log("Django error:", err);
         if (err.email) setErrors({ email: "Email already exists" });
       }
     } finally {
@@ -349,9 +353,7 @@ export default function AdminPage() {
               justifyContent: "center", margin: "0 auto 16px" }}>
               <span style={{ fontSize: 28 }}>⚠️</span>
             </div>
-            <h3 style={{ margin: "0 0 10px", fontSize: 18, fontWeight: 700, color: "#111" }}>
-              Access Denied
-            </h3>
+         
             <p style={{ fontSize: 14, color: "#6b7280", marginBottom: 24 }}>{warningMsg}</p>
             <button onClick={() => setWarningMsg(null)}
               style={{ padding: "10px 32px", borderRadius: 8, border: "none",
@@ -361,6 +363,28 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      {successMsg && (
+  <div style={{
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    zIndex: 99999,
+  }}>
+    <div style={{
+      background: "#fff", borderRadius: 16, padding: "32px 40px",
+      textAlign: "center", boxShadow: "0 20px 40px rgba(0,0,0,0.2)",
+    }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: "50%", background: "#dcfce7",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        margin: "0 auto 16px", fontSize: 28,
+      }}>✅</div>
+      <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "#111" }}>
+        Success!
+      </h3>
+      <p style={{ margin: 0, fontSize: 14, color: "#6b7280" }}>{successMsg}</p>
+    </div>
+  </div>
+)}
 
       {/* ── Top bar ── */}
       <div style={{
@@ -490,11 +514,7 @@ export default function AdminPage() {
                             </span>
                             <button
                               onClick={() => {
-                                const loggedInEmail = localStorage.getItem("adminEmail");
-                                if (admin.email !== loggedInEmail) {
-                                  setWarningMsg("You cannot view another admin's password.");
-                                  return;
-                                }
+                              
                                 togglePassword(admin.id);
                               }}
                               style={{ background: "none", border: "none", cursor: "pointer",
@@ -514,11 +534,7 @@ export default function AdminPage() {
                               <Users size={11} /> View
                             </button>
                             <button onClick={() => {
-                              const loggedInEmail = localStorage.getItem("adminEmail");
-                              if (admin.email !== loggedInEmail) {
-                                setWarningMsg("You cannot edit another admin's details.");
-                                return;
-                              }
+                           
                               openEdit(admin);
                             }}
                               style={{ display: "flex", alignItems: "center", gap: 3,
@@ -629,7 +645,7 @@ export default function AdminPage() {
               onChange={(v) => setForm({ ...form, email: v })}
               error={errors.email} placeholder="Enter email address" />
             <PasswordField
-              label={editAdmin ? "Password (leave blank to keep)" : "Password"}
+              
               value={form.password}
               onChange={(v) => setForm({ ...form, password: v })}
               error={errors.password} />
